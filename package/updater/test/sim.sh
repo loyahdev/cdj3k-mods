@@ -443,16 +443,25 @@ bad=$(grep -v 'remount' /sim/mount.log | cut -d'|' -f2 | grep -vE '^/dev/mmcblk(
 [ -z "$bad" ] && pass "only the overlay and settings partitions were mounted rw" || fail "mounted rw: $bad"
 
 step "STEP 5e  firmware below 3.13 is refused before anything is written"
+# 3.12, not 2.99: the version one step below the floor is the only one that can
+# tell this gate from the 3.00 one it replaced. A major-version case passes
+# under either and proves nothing about where the boundary sits.
 rm -f /mnt/pdj.tar.gz; : > /sim/gui_image.log
-echo "2.99" > /sim/fw_release
+echo "3.12" > /sim/fw_release
 # mods_fail holds the error image up forever, so the run has to be timed out.
 timeout 10 bash "$ISO/usb_update.sh" "$ISO" en >/dev/null 2>&1; rc=$?
 [ "$rc" = 124 ] && pass "the installer stopped and held the screen (did not exit)" \
     || fail "expected a hang on the error image, got rc=$rc"
 [ ! -f /mnt/pdj.tar.gz ] \
-    && pass "nothing was written on a refused firmware" || fail "an overlay was staged on 2.99"
+    && pass "nothing was written on a refused firmware" || fail "an overlay was staged on 3.12"
 grep -q 'D003' /sim/gui_image.log \
     && pass "the error image (D003) was shown" || fail "no D003 on a refused firmware"
+
+# An older major, which the minor comparison must not let through.
+rm -f /mnt/pdj.tar.gz; echo "2.99" > /sim/fw_release
+timeout 10 bash "$ISO/usb_update.sh" "$ISO" en >/dev/null 2>&1
+[ ! -f /mnt/pdj.tar.gz ] \
+    && pass "2.99 is refused too" || fail "an overlay was staged on 2.99"
 
 # ... and a supported one still installs.
 echo "3.13" > /sim/fw_release
