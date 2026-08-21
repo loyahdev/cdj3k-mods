@@ -1,0 +1,32 @@
+/*
+ * Spacing, sizing and layout tokens.
+ *
+ * One 4px-based scale for every gap, pad and margin in the site. A component
+ * that needs a value not on the scale is usually a component with a layout
+ * problem, not a scale that is missing a step.
+ */
+
+:root {
+  --space-0: 0;
+  --space-1: 0.25rem; /*  4px */
+  --space-2: 0.5rem; /*   8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /*    16px */
+  --space-5: 1.5rem; /*  24px */
+  --space-6: 2rem; /*    32px */
+  --space-7: 2.5rem; /*  40px */
+  --space-8: 3rem; /*    48px */
+  --space-9: 4rem; /*    64px */
+  --space-10: 5.5rem; /* 88px */
+
+  /* Measures. Prose is capped at something readable rather than at the column. */
+  --measure-prose: 68ch;
+  --width-content: 68rem;
+  --width-wide: 84rem;
+
+  /* The docs reader's three columns. */
+  --width-docs-nav: 15.5rem;
+  --width-docs-toc: 14rem;
+
+  --header-height: 3.5rem;
+}

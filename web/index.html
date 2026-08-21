@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CDJ3K-Mods</title>
+    <meta
+      name="description"
+      content="A collection of modifications for the CDJ-3000: hot cues, stems, x-pad,theming, browsing."
+    />
+    <script>
+      // Applied before first paint so the page never flashes the wrong scheme.
+      (function () {
+        try {
+          var saved = localStorage.getItem('cdj3k-scheme');
+          if (saved === 'light' || saved === 'dark') {
+            document.documentElement.dataset.scheme = saved;
+          }
+        } catch (e) {
+          /* private mode: fall through to the media query */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,89 @@
+/*
+ * Mixins. Compile-time only -- this file emits nothing on its own, which is why
+ * it is safe as the auto-injected prelude for every component.
+ */
+@use 'breakpoints' as *;
+
+/* The one focus ring in the site. Keyboard only: a mouse user clicking a button
+ * has not asked to be told where focus went. */
+@mixin focus-ring($offset: 2px) {
+  &:focus-visible {
+    outline: 2px solid var(--c-focus);
+    outline-offset: $offset;
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* Centred page column. */
+@mixin container($width: var(--width-content)) {
+  width: 100%;
+  max-width: $width;
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+
+  @include from('md') {
+    padding-inline: var(--space-6);
+  }
+}
+
+/* Visible to a screen reader, not to the eye. */
+@mixin visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* An uppercase micro-label: section eyebrows, table headers, badges. */
+@mixin eyebrow {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+
+/* Anything that can outgrow its column scrolls inside itself, never the page. */
+@mixin scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@mixin card {
+  background: var(--c-surface);
+  border: var(--border-hair) solid var(--c-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Clamp to n lines. */
+@mixin line-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* A thin scrollbar that matches the surface it sits on. */
+@mixin thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-border-strong) transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--c-border-strong);
+    border-radius: var(--radius-pill);
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

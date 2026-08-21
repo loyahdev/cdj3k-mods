@@ -1,0 +1,339 @@
+/*
+ * Prose.
+ *
+ * Styles for HTML the build produced from markdown. It cannot carry classes of
+ * its own and it is not inside a Vue scope, so this is a global stylesheet
+ * hanging off one root class.
+ *
+ * The reading measure is capped here and nowhere else. Tables and code opt out
+ * of it, because a 6-column table wrapped to 68 characters is not readable.
+ *
+ * The prelude vite injects reaches entry files only, so a partial loaded through
+ * @use asks for the abstracts itself.
+ */
+@use '../abstracts' as *;
+
+.prose {
+  color: var(--c-text);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+
+  > * {
+    max-width: var(--measure-prose);
+  }
+
+  /* ---- headings ----------------------------------------------------- */
+
+  h2,
+  h3,
+  h4 {
+    scroll-margin-top: calc(var(--header-height) + var(--space-5));
+    position: relative;
+  }
+
+  h2 {
+    margin-block: var(--space-8) var(--space-4);
+    padding-top: var(--space-5);
+    border-top: var(--border-hair) solid var(--c-border);
+    font-size: var(--text-2xl);
+  }
+
+  h3 {
+    margin-block: var(--space-6) var(--space-3);
+    font-size: var(--text-xl);
+  }
+
+  h4 {
+    margin-block: var(--space-5) var(--space-2);
+    font-size: var(--text-md);
+    color: var(--c-text);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* A permalink that appears on hover, sitting in the gutter so it never
+   * reflows the heading. Hidden below the breakpoint where a gutter exists. */
+  :is(h2, h3) > .heading-anchor {
+    position: absolute;
+    inset-inline-start: -1.1em;
+    color: var(--c-text-faint);
+    text-decoration: none;
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+
+    @include below('lg') {
+      display: none;
+    }
+  }
+
+  :is(h2, h3):hover > .heading-anchor,
+  .heading-anchor:focus-visible {
+    opacity: 1;
+  }
+
+  /* ---- flow ---------------------------------------------------------- */
+
+  p,
+  ul,
+  ol,
+  blockquote,
+  .md-scroll,
+  pre,
+  hr {
+    margin-block: var(--space-4);
+  }
+
+  ul,
+  ol {
+    padding-inline-start: var(--space-5);
+  }
+
+  li + li {
+    margin-top: var(--space-2);
+  }
+
+  li > ul,
+  li > ol {
+    margin-block: var(--space-2);
+  }
+
+  strong {
+    font-weight: var(--weight-semibold);
+    color: var(--c-text);
+  }
+
+  hr {
+    border: none;
+    border-top: var(--border-hair) solid var(--c-border);
+    margin-block: var(--space-7);
+  }
+
+  blockquote {
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 2px solid var(--c-accent);
+    background: var(--c-accent-soft);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    color: var(--c-text-muted);
+
+    /* `> [!WARNING]` in the markdown. Amber rather than the accent, which on
+     * this deck's language means "on, selected, working". */
+    &.md-quote--warn {
+      border-inline-start-color: var(--c-warn);
+      background: var(--c-warn-soft);
+    }
+
+    > :first-child {
+      margin-top: 0;
+    }
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  /* Screenshots. Boxed like a code block so a deck screenshot reads as a thing
+   * being shown rather than as decoration bleeding into the page.
+   *
+   * The deck's screen is 1280x720 and every shot is native, so they are never
+   * upscaled past their own width -- a stretched screenshot of a UI is a
+   * screenshot of a different UI. */
+  img {
+    display: block;
+    width: 100%;
+    max-width: 1280px;
+    /* Every screenshot opens at its own size; see ImageLightbox. */
+    cursor: zoom-in;
+    /* The build stamps each image's intrinsic width and height, which reserves
+     * the right box before it loads; `height: auto` is what lets the width rule
+     * above scale it without stretching. Together they mean a lazy screenshot
+     * shifts nothing when it arrives. */
+    height: auto;
+    margin-block: var(--space-4);
+    background: var(--c-surface-sunken);
+    border: var(--border-hair) solid var(--c-border);
+    border-radius: var(--radius-md);
+  }
+
+  /* A paragraph of nothing but images.
+   *
+   * auto-fit rather than a fixed two columns, because this wraps BOTH cases: a
+   * lone screenshot is one paragraph of one image and must fill the column,
+   * while a pair or a set of seven should sit side by side. A hard
+   * `repeat(2, 1fr)` rendered every single screenshot at half width.
+   *
+   * The `min()` is what keeps it from overflowing below 20rem: the track floor
+   * becomes 100% there instead of a width the column does not have. */
+  .md-gallery {
+    /* Galleries opt out of the reading measure: a side-by-side comparison at
+     * 68 characters wide is two thumbnails. */
+    max-width: 100%;
+    display: grid;
+    gap: var(--space-4) var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    margin-block: var(--space-5);
+  }
+
+  /* A short silent clip of a gesture. Same box as a screenshot, because that is
+   * what it is standing in for; the caption carries what the motion shows. */
+  .md-video {
+    max-width: 100%;
+    margin-block: var(--space-5);
+
+    video {
+      display: block;
+      width: 100%;
+      max-width: 1280px;
+      height: auto;
+      background: var(--c-surface-sunken);
+      border: var(--border-hair) solid var(--c-border);
+      border-radius: var(--radius-md);
+    }
+
+    figcaption {
+      margin-top: var(--space-2);
+      color: var(--c-text-faint);
+      font-size: var(--text-xs);
+      line-height: var(--leading-snug);
+    }
+  }
+
+  .md-figure {
+    margin: 0;
+    min-width: 0;
+
+    img {
+      margin-block: 0;
+    }
+
+    figcaption {
+      margin-top: var(--space-2);
+      color: var(--c-text-faint);
+      font-size: var(--text-xs);
+      line-height: var(--leading-snug);
+    }
+  }
+
+  a[data-external]::after {
+    content: '↗';
+    display: inline-block;
+    margin-inline-start: 0.15em;
+    font-size: 0.85em;
+    vertical-align: baseline;
+  }
+
+  /* ---- code ---------------------------------------------------------- */
+
+  :not(pre) > code {
+    padding: 0.12em 0.36em;
+    background: var(--c-surface-raised);
+    border: var(--border-hair) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.875em;
+    word-break: break-word;
+  }
+
+  pre {
+    max-width: 100%;
+    padding: var(--space-4);
+    background: var(--c-code-bg);
+    border: var(--border-hair) solid var(--c-code-border);
+    border-radius: var(--radius-md);
+    line-height: var(--leading-snug);
+    @include scroll-x;
+    @include thin-scrollbar;
+
+    code {
+      display: block;
+      width: max-content;
+      min-width: 100%;
+    }
+  }
+
+  /* ---- tables -------------------------------------------------------- */
+
+  .md-scroll {
+    max-width: 100%;
+    @include scroll-x;
+    @include thin-scrollbar;
+    border: var(--border-hair) solid var(--c-border);
+    border-radius: var(--radius-md);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-base);
+    line-height: var(--leading-snug);
+  }
+
+  th,
+  td {
+    padding: var(--space-2) var(--space-3);
+    text-align: start;
+    vertical-align: top;
+    border-bottom: var(--border-hair) solid var(--c-border);
+  }
+
+  th {
+    @include eyebrow;
+    color: var(--c-text-muted);
+    background: var(--c-surface-raised);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child :is(th, td) {
+    border-bottom: none;
+  }
+
+  /* A table cell is often a single term; keep it on one line where it fits. */
+  td:first-child {
+    color: var(--c-text);
+  }
+
+  /* ---- search hit highlighting ---------------------------------------- */
+
+  mark {
+    background: var(--c-mark);
+    color: inherit;
+    border-radius: var(--radius-sm);
+    padding: 0 0.15em;
+  }
+}
+
+/*
+ * Shiki emits both palettes as custom properties on every token, so the scheme
+ * swap is a variable pick rather than a second render. The three selectors
+ * mirror tokens/_color.scss exactly: dark by default, light by media query
+ * unless overridden, light when explicitly chosen.
+ *
+ * FOREGROUND ONLY. Shiki also publishes a background per theme, and taking it
+ * would put a github surface inside our own -- and would do it inconsistently,
+ * because the scheme-specific selectors here outrank `.prose pre` while the
+ * default one does not. The block's surface is the token; the syntax colours
+ * are shiki's.
+ */
+.shiki,
+.shiki span {
+  color: var(--shiki-dark);
+  font-style: var(--shiki-dark-font-style);
+  font-weight: var(--shiki-dark-font-weight);
+  text-decoration: var(--shiki-dark-text-decoration);
+}
+
+@mixin shiki-light {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-light);
+    font-style: var(--shiki-light-font-style);
+    font-weight: var(--shiki-light-font-weight);
+    text-decoration: var(--shiki-light-text-decoration);
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-scheme='dark']) {
+    @include shiki-light;
+  }
+}
+
+:root[data-scheme='light'] {
+  @include shiki-light;
+}

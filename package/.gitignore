@@ -1,0 +1,12 @@
+# Build outputs
+build/
+deck/out/
+
+# The packaging key and any update image are secrets / artifacts — never commit them.
+*.key
+*.UPD
+*.crc32
+*.iso
+
+# macOS
+.DS_Store

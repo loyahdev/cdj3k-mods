@@ -1,0 +1,58 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    # The site is the app plus the corpus it renders, so a docs edit is a deploy.
+    paths:
+      - 'web/**'
+      - 'docs/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; a queued run is superseded rather than raced.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+        working-directory: web
+
+      # Typecheck runs as part of `build`, so a type error fails the deploy.
+      # Apex domain, so the site is served from the root rather than /<repo>/.
+      # web/public/CNAME carries the domain into the artifact.
+      - run: npm run build
+        working-directory: web
+        env:
+          BASE_PATH: /
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

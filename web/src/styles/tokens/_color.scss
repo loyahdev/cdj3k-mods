@@ -1,0 +1,134 @@
+/*
+ * Colour tokens.
+ *
+ * Two layers, and the distinction is the whole point of the file:
+ *
+ *   --p-*   PRIMITIVE. A colour, named after what it is. Never used by a
+ *           component.
+ *   --c-*   SEMANTIC. A role, named after what it is for. This is what
+ *           components use.
+ *
+ * A scheme swap re-points the semantic layer at different primitives; nothing
+ * downstream changes. Only this file knows a hex code.
+ */
+
+:root {
+  /* -- primitives ---------------------------------------------------- */
+
+  /* Neutrals, dark end to light end. */
+  --p-ink-900: #0b0d10;
+  --p-ink-800: #111419;
+  --p-ink-700: #171b21;
+  --p-ink-600: #1e232b;
+  --p-ink-500: #272d37;
+  --p-ink-400: #39414e;
+  --p-ink-300: #5b6675;
+  --p-ink-200: #8b95a5;
+  --p-ink-100: #b9c1cd;
+  --p-ink-050: #dfe3ea;
+  --p-ink-000: #f7f8fa;
+  --p-white: #ffffff;
+
+  /* The deck's own accent: the blue that means on, selected, working. */
+  --p-blue-600: #0f6ea8;
+  --p-blue-500: #1d8bcd;
+  --p-blue-400: #38a5e4;
+  --p-blue-300: #7cc6ef;
+
+  /* The three stem hues, as the panel lamps use them. */
+  --p-stem-drums: #e0524a;
+  --p-stem-harmonics: #3f8fe0;
+  --p-stem-vocals: #4aa96c;
+
+  --p-amber-600: #a66a12;
+  --p-amber-500: #d99026;
+
+  /* -- semantic: dark is the default ---------------------------------- */
+
+  --c-bg: var(--p-ink-900);
+  --c-surface: var(--p-ink-800);
+  --c-surface-raised: var(--p-ink-700);
+  --c-surface-sunken: #06080a;
+  --c-overlay: rgb(6 8 10 / 0.72);
+
+  --c-border: var(--p-ink-600);
+  --c-border-strong: var(--p-ink-500);
+
+  --c-text: var(--p-ink-050);
+  --c-text-muted: var(--p-ink-200);
+  --c-text-faint: var(--p-ink-300);
+  --c-text-inverse: var(--p-ink-900);
+
+  --c-accent: var(--p-blue-400);
+  --c-accent-hover: var(--p-blue-300);
+  --c-accent-contrast: var(--p-ink-900);
+  --c-accent-soft: rgb(56 165 228 / 0.14);
+
+  --c-focus: var(--p-blue-300);
+  --c-mark: rgb(217 144 38 / 0.28);
+
+  /* A caution, as opposed to the accent's "on, selected, working". */
+  --c-warn: var(--p-amber-500);
+  --c-warn-soft: rgb(217 144 38 / 0.14);
+
+  --c-stem-drums: var(--p-stem-drums);
+  --c-stem-harmonics: var(--p-stem-harmonics);
+  --c-stem-vocals: var(--p-stem-vocals);
+
+  --c-code-bg: var(--c-surface-sunken);
+  --c-code-border: var(--p-ink-600);
+
+  --c-shadow: rgb(0 0 0 / 0.45);
+
+  color-scheme: dark;
+}
+
+/* Light. Applied by the media query, and overridable in both directions by the
+ * data attribute the toggle writes -- so an explicit choice always wins. */
+@mixin light-scheme {
+  --c-bg: var(--p-ink-000);
+  --c-surface: var(--p-white);
+  --c-surface-raised: #eef0f4;
+  --c-surface-sunken: #f2f4f7;
+  --c-overlay: rgb(20 23 28 / 0.4);
+
+  --c-border: #dde1e8;
+  --c-border-strong: #c3cad4;
+
+  --c-text: #14171c;
+  --c-text-muted: #566072;
+  --c-text-faint: #79839a;
+  --c-text-inverse: var(--p-white);
+
+  --c-accent: var(--p-blue-600);
+  --c-accent-hover: var(--p-blue-500);
+  --c-accent-contrast: var(--p-white);
+  --c-accent-soft: rgb(15 110 168 / 0.1);
+
+  --c-focus: var(--p-blue-500);
+  --c-mark: rgb(217 144 38 / 0.3);
+
+  --c-warn: var(--p-amber-600);
+  --c-warn-soft: rgb(217 144 38 / 0.16);
+
+  --c-stem-drums: #c0392f;
+  --c-stem-harmonics: #1f6fb8;
+  --c-stem-vocals: #35804f;
+
+  --c-code-bg: #f6f8fa;
+  --c-code-border: #e3e7ed;
+
+  --c-shadow: rgb(20 30 50 / 0.12);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-scheme='dark']) {
+    @include light-scheme;
+  }
+}
+
+:root[data-scheme='light'] {
+  @include light-scheme;
+}

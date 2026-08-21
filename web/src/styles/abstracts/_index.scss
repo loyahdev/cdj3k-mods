@@ -1,0 +1,7 @@
+/*
+ * The prelude injected into every .scss and every <style lang="scss"> block
+ * (see vite.config.ts). It must stay output-free: anything that emits CSS here
+ * is emitted once per component file.
+ */
+@forward 'breakpoints';
+@forward 'mixins';

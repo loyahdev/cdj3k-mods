@@ -1,0 +1,14 @@
+# Keep the build context to sources. Two reasons this matters:
+#  - updater/packaging.key is the conventional key location and sits INSIDE the
+#    context; excluding it keeps the secret out of the daemon and its cache.
+#  - build/ holds ~70 MB of finished .UPD images and binaries that would
+#    otherwise be uploaded on every rebuild, and deck/out/ could shadow the
+#    container's own build products.
+build/
+deck/out/
+updater/test/
+*.key
+*.UPD
+*.crc32
+*.iso
+.DS_Store

@@ -1,0 +1,35 @@
+/*
+ * Breakpoints, and the only way to spell one.
+ *
+ * These are min-width: the base styles are the narrow layout and each step adds
+ * to it. A `max-width` query would mean two places deciding the same thing.
+ */
+@use 'sass:map';
+
+$breakpoints: (
+  'sm': 30rem,
+  /*  480px */ 'md': 48rem,
+  /*  768px */ 'lg': 64rem,
+  /*  1024px */ 'xl': 80rem,
+  /* 1280px */ 'xxl': 96rem /* 1536px */,
+);
+
+@mixin from($name) {
+  @if not map.has-key($breakpoints, $name) {
+    @error "Unknown breakpoint `#{$name}`. Known: #{map.keys($breakpoints)}.";
+  }
+  @media (min-width: map.get($breakpoints, $name)) {
+    @content;
+  }
+}
+
+/* For the handful of places that genuinely describe the small layout, e.g. a
+ * drawer that only exists below the docs sidebar's breakpoint. */
+@mixin below($name) {
+  @if not map.has-key($breakpoints, $name) {
+    @error "Unknown breakpoint `#{$name}`. Known: #{map.keys($breakpoints)}.";
+  }
+  @media (max-width: (map.get($breakpoints, $name) - 0.0625rem)) {
+    @content;
+  }
+}

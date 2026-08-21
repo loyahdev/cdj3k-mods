@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs
+package/build/
+package/deck/out/
+package/deck/tools/__pycache__/

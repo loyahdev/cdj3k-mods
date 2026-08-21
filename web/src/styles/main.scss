@@ -1,0 +1,29 @@
+/*
+ * The global stylesheet, and the only place tokens and base rules are emitted.
+ *
+ * Everything else in the site is a scoped <style lang="scss"> block inside its
+ * own component. The exception is prose, which styles HTML the build produced
+ * and therefore has no component to live in.
+ */
+@use 'tokens';
+@use 'base/reset';
+@use 'base/prose';
+
+/* Skip link: first thing in the tab order, invisible until focused. */
+.skip-link {
+  position: absolute;
+  inset-block-start: var(--space-2);
+  inset-inline-start: var(--space-2);
+  z-index: var(--z-dialog);
+  padding: var(--space-2) var(--space-4);
+  background: var(--c-surface-raised);
+  border: var(--border-hair) solid var(--c-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--c-text);
+  text-decoration: none;
+  transform: translateY(-200%);
+
+  &:focus-visible {
+    transform: none;
+  }
+}
