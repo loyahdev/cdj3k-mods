@@ -63,6 +63,9 @@ There is no config file. `.wav` and `.flac` are read; dotfiles and rekordbox's
 `.asd` siblings are skipped. A file the deck cannot decode is skipped and the
 pad stays empty.
 
+The [starter pack](https://github.com/nsaintot/cdj3k-mods/releases/download/extras-files/cdj3k-mods-starter.zip) is eight drums already numbered for the pads — a 909 kit
+on A–D and an 808 kit on E–H — with a 707 and a 606 kit in `extras/`.
+
 Unlike [groove circuit](groove-circuit.md), no BPM is declared. A one-shot plays
 at its own length, so there is nothing to lock to the grid.
 

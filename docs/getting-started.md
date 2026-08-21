@@ -69,6 +69,10 @@ mods/gc/gc-config.txt  which pads groove circuit owns, and what they play
 finds. [Groove circuit](groove-circuit.md) is the one with a config file,
 because a loop has to declare its own tempo to stay locked to the grid.
 
+**To start with something**, download the [starter pack](https://github.com/nsaintot/cdj3k-mods/releases/download/extras-files/cdj3k-mods-starter.zip): eight drum samples
+laid out ready for X-PAD, plus a shelf of extras to swap in. Unzip it and copy
+its `mods` folder to the root of your stick.
+
 Neither is touched by installing or removing the mods.
 
 ## Removing
