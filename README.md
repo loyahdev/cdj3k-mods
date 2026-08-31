@@ -1,3 +1,6 @@
+> [!NOTE]
+> This is a modified version of the publicly available cdj3k-mods repo where I have fixed some bugs and functionality within the tool.
+
 # cdj3k-mods
 
 QoL features for the CDJ-3000 without replacing its firmware.
