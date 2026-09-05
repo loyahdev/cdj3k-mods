@@ -1,5 +1,4 @@
-> [!NOTE]
-> This is a modified version of the publicly available cdj3k-mods repo where I have fixed some bugs and functionality within the tool.
+This working copy contains the **v11 PRE-STEMS visual polish candidate**, based on the hardware-tested v10 build. Read [PRESTEMS_V11.md](PRESTEMS_V11.md) for changes and verification.
 
 # cdj3k-mods
 

@@ -150,7 +150,7 @@ int cue_pad_ready(void);           /* [init] */
 /* usecase::deck::CueController for the deck this event belongs to, or NULL. The
  * same object the stock press path uses, reached the same way. */
 void *cue_controller(const struct cue_event *ev);      /* [deck] */
-
+int cue_gate_press_allowed(const struct cue_event *ev); /* [deck] */
 /* How many hot-cue pads are down right now. */
 int cue_pads_held(void);                               /* [deck] */
 
@@ -232,13 +232,31 @@ int cue_slot_pos(const struct cue_event *ev, int kind, int64_t *out);  /* [deck]
 /* Whether each behaviour acts. Read live on every event, so a MOD SETTINGS row
  * toggles it with nothing to re-install. Bare g_ because common.c persists them
  * and the play-screen shortcut reads one. */
-extern int g_gate_on;      /* cue/gate.c    -- momentary pads          */
+extern int g_gate_on;      /* cue/gate.c -- master feature switch (persisted) */
+extern int g_gate_active;  /* cue/gate.c -- play-screen runtime state (not persisted) */
+extern int g_gate_default_active; /* cue/gate.c -- state seeded for each loaded track */
 extern int g_smart_on;     /* cue/smart.c   -- memory cue follows      */
 extern int g_preview_on;   /* cue/preview.c -- assign under the needle  */
 
-/* cue/shortcut.c: repaint the play-screen GATE CUE plate after something else
- * moved g_gate_on. No-op until it has been built. */
+/* cue/shortcut.c: update visibility from the master switch and repaint the
+ * runtime active/inactive state. No-op until the button has been built. */
 void cue_shortcut_refresh(void);
+void cue_shortcut_tick(void);
+
+/* MOD SETTINGS changed the persistent master feature switch. */
+void cue_gate_changed(void);
+void cue_gate_track_loaded(void);
+void cue_gate_tick(void);
+
+/* The play-screen button changed only the runtime active state. */
+void cue_gate_active_changed(void);
+
+/* Exact-update mode keeps the recovered transport and parent mouse listener.
+ * The source-drawn shortcut uses these to mirror, rather than duplicate, that
+ * native runtime toggle. */
+int cue_gate_native_owned(void);
+int cue_gate_runtime_active(void);
+int cue_gate_runtime_set_active(int active);
 
 /* cue/led.c: advance the armed pad's blink. Called from the display timer,
  * because the app writes a lamp only when its OWN state changes and a groove

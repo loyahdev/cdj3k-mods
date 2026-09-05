@@ -110,7 +110,7 @@ $(OUT)/tests/%: $(MODS_DIR)/tests/%.c $(MODS_DIR)/tests/test.h $(MODS_TEST_STUBS
                 $(MODS_PURE_SRCS) $(MODS_TEST_DEPS) $(MODS_HDRS)
 	@mkdir -p $(dir $@)
 	$(HOST_CC) $(HOST_CFLAGS) -o $@ $< $(MODS_TEST_STUBS) \
-	    $(MODS_PURE_SRCS) $(MODS_TEST_DEPS) -lm
+	    $(MODS_PURE_SRCS) $(MODS_TEST_DEPS) -lm -pthread -ldl
 
 check: $(TEST_BINS)
 	@fail=0; for t in $(TEST_BINS); do "$$t" || fail=1; done; \

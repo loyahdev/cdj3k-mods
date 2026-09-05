@@ -28,6 +28,7 @@ DO_PACK=1
 OUT=""
 VERSION=""
 REMOVE=0
+DEFAULT_VERSION="0.14.0"
 
 # Value-taking options validate their argument, so `--key --no-build` is an
 # error rather than KEY="--no-build".
@@ -64,13 +65,13 @@ fi
 # git describe is empty and the shim reports "unknown" - override with --version.
 GIT_DESCRIBE="$(git -C "$HERE" describe --tags --always --dirty 2>/dev/null || true)"
 GIT_TAG="$(git -C "$HERE" describe --tags --abbrev=0 2>/dev/null || true)"
-MOD_BUILD="${VERSION:-${GIT_DESCRIBE:-unknown}}"
+MOD_BUILD="${VERSION:-${GIT_DESCRIBE:-$DEFAULT_VERSION}}"
 if [[ -n "$VERSION" ]]; then
     MOD_VERSION="$VERSION"
 elif [[ -n "$GIT_TAG" ]]; then
     MOD_VERSION="$GIT_TAG"; [[ "$GIT_TAG" == "$GIT_DESCRIBE" ]] || MOD_VERSION="$GIT_TAG+"
 else
-    MOD_VERSION="unknown"
+    MOD_VERSION="$DEFAULT_VERSION"
 fi
 
 # Check the key BEFORE building.

@@ -148,10 +148,8 @@ void menu_pane_labels(uintptr_t view, uintptr_t rmodel, const struct kit_row *r)
     int n, i;
 
     if (!menu_g_strarr_ok || !menu_g_setstr_ok || !rmodel || !r) return;
-    /* The borrowed option set IS the deck's own OFF/ON array, so a row using
-     * kit_off_on already reads correctly: re-lettering it would hand the model
-     * two identical strings and rebuild the rows for nothing. */
-    if (r->values == kit_off_on) return;
+    /* Re-letter and resize boolean rows too: stock may reuse the borrowed
+     * option set after a theme row replaced its strings and list height. */
 
     /* Exactly as many strings as menu_rnumrows will claim. Both read the same
      * function, so the array and the count are the same number by construction;

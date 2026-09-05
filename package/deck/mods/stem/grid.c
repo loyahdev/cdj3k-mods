@@ -503,6 +503,11 @@ static void grid_wrap_reply(void *self, void *req, void *tid, void *grid,
 
 static int grid_install(void)
 {
+    if (prestem_native_owner_active()) {
+        MDBG("stem_grid: native PRE-STEMS owns track lifecycle -> skipped\n");
+        return 0;
+    }
+
     if (mod_patch_vslot("gridReply", EP122_GRID_RECEPTION,
                         GRID_RECEPTION_SLOT, (void *)grid_wrap_reply,
                         &grid_g_orig_reply) != 0) {

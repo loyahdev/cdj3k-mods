@@ -786,6 +786,11 @@ void mod_stem_decode_report(void)
 static int stem_decode_install(void)
 {
     char name[64];
+
+    if (prestem_native_owner_active()) {
+        MDBG("stem_decode: native PRE-STEMS owns track decode/binding path -> skipped\n");
+        return 0;
+    }
     int i, armed = 0, readers_armed;
 
     /* Cache each class's vtable once: the wrappers compare a live object's vptr

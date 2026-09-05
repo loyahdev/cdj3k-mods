@@ -157,6 +157,8 @@ void * loader_main(void *arg)
         /* The stick's own slot files, rescanned when the volume or the pool
          * rate moves. Cheap otherwise, and this is the one thread allowed to
          * decode. */
+        /* PRE-STEMS owns and reads the working update's CDJMODS bundle format
+         * directly. Server Stems never rewrites that index or its bundles. */
         mod_stem_gc_poll();
         /* The X-PAD's sample banks, on the same terms and for the same reason. */
         xpad_bank_poll();

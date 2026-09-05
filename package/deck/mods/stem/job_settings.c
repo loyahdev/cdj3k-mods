@@ -3,6 +3,7 @@
  * mods/stem/job_settings.c - the STEMS rows in MOD SETTINGS, and the server address they carry.
  */
 #include "stem/job_internal.h"
+#include "stem/mode.h"
 
 /* Says what was expected rather than just that it was wrong -- the deck has no
  * other way to find out. */
@@ -28,6 +29,15 @@ static const char *const k_stems_notice[] = {
 void mods_stem_settings_changed(void)
 {
     int on = g_stems_on ? 1 : 0;
+    int prestem_was_on = g_prestems_on ? 1 : 0;
+
+    /* The two engines share EP122 audio hooks, so only one may own the mix.
+     * Server Stems wins immediately when its switch is turned on. */
+    stem_mode_exclusive(&g_stems_on, &g_prestems_on,
+                        STEM_MODE_PREFER_SERVER);
+    on = g_stems_on;
+    if (prestem_was_on && !g_prestems_on)
+        prestem_settings_changed();
 
     /* A flag, not a HELLO. This is called from the settings screen, on the message
      * thread, and the round trip includes a discovery that legitimately takes

@@ -113,6 +113,14 @@ int  mod_patch_slot(const char *name, uintptr_t slot, uintptr_t expect_fn,
                     const uint8_t *guard, size_t guard_n, void *wrapper,
                     uintptr_t *saved);
 
+/* As above, for a pointer slot that lives in an executable PT_LOAD page.
+ * The temporary transition is RX -> RW -> RX. This is deliberately separate
+ * from ordinary vtable slots so restoring one cannot silently remove execute
+ * permission from the page it came from. */
+int  mod_patch_exec_slot(const char *name, uintptr_t slot, uintptr_t expect_fn,
+                         const uint8_t *guard, size_t guard_n, void *wrapper,
+                         uintptr_t *saved);
+
 /* Patch a virtual named by (resolved vtable symbol, byte offset from the address
  * point). Preferred: the stock function comes out of the slot itself, so there
  * is no address to state and nothing to guard. -1 if the class or slot is
@@ -122,6 +130,9 @@ int  mod_patch_vslot(const char *name, int vt_sym, unsigned off,
 
 /* Write `val` back into an already-patched slot. */
 void mod_restore_slot(uintptr_t slot, uintptr_t val);
+
+/* Write `val` back into an executable pointer-slot page. */
+void mod_restore_exec_slot(uintptr_t slot, uintptr_t val);
 
 /* Put `n` bytes of code back at `fn`, flushing the instruction cache. */
 void mod_restore_code(uintptr_t fn, const uint8_t *code, size_t n);

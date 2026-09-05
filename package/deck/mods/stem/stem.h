@@ -37,6 +37,41 @@ extern "C" {
  * below hang off it. */
 extern int g_stems_on;
 
+/* PRE-STEMS: the source-built OverCue sidecar engine. Mutually exclusive
+ * with Server Stems; persisted in MOD SETTINGS. */
+extern int g_prestems_on;
+void prestem_tick(void);
+void prestem_wave_apply(void);
+void prestem_ui_attach(uintptr_t anchor);
+void prestem_ui_refresh(void);
+void prestem_ui_observed(int attached, int open);
+void prestem_status(char *out, size_t cap);
+void prestem_audio(float *dst, int64_t pos, int64_t frames, uint64_t lo, uint64_t hi, int rate);
+void prestem_settings_changed(void);   /* [message] */
+int prestem_native_owner_active(void); /* Legacy compatibility gates: source engine returns false. */
+
+enum prestem_ui_flags {
+    PRESTEM_UI_ENABLED = 1U,
+    PRESTEM_UI_READY = 2U,
+    PRESTEM_UI_LOADING = 4U,
+};
+static inline int prestem_ui_selectable(unsigned flags)
+{
+    return (flags & PRESTEM_UI_ENABLED) &&
+           (flags & (PRESTEM_UI_READY | PRESTEM_UI_LOADING));
+}
+
+/* Source-owned UI snapshot. Token rejects taps from a previous track. */
+struct prestem_ui_snapshot {
+    uint32_t version;
+    uint32_t size;
+    uint32_t state;
+    uint32_t flags;
+    uint64_t token;
+};
+int prestem_ui_snapshot(struct prestem_ui_snapshot *out); /* [message] */
+int prestem_ui_request_state(uint64_t token, unsigned int state); /* [message] */
+
 /* 0 = AUTO (discover on the LAN), 1 = MANUAL (use the address below). A bool so
  * the stock two-value radio works; only the labels differ from OFF/ON. */
 extern int g_stem_manual;

@@ -325,7 +325,7 @@ static void forget_applied(void)
 
 static void *worker(void *unused)
 {
-    int settle = 0, analysis_wait = 0, stems_were_on = 0;
+    int settle = 0, analysis_wait = 0, stems_were_on = 0, pre_was_on = 0;
 
     (void)unused;
 
@@ -357,7 +357,9 @@ static void *worker(void *unused)
          * height with the stems audibly reduced underneath it: the applied gains
          * still matched the faders, so wave_gains_moved saw no movement and
          * nothing ever repainted. */
-        if (!g_stems_on) {
+        if (pre_was_on && !g_prestems_on) { wave_restore(); forget_applied(); }
+        pre_was_on = g_prestems_on;
+        if (!g_stems_on && !g_prestems_on) {
             if (stems_were_on) {
                 stems_were_on = 0;
                 wave_restore();
@@ -399,6 +401,11 @@ static void *worker(void *unused)
             }
             if (!wave_g_st[s].pristine)
                 wave_capture_step(s);
+        }
+
+        if (g_prestems_on && !g_stems_on) {
+            prestem_wave_apply();
+            continue;
         }
 
         if (g_track_ready && !analysis_wait &&

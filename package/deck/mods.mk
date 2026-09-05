@@ -34,7 +34,11 @@ MODS_CXX_SRCS := $(wildcard $(MODS_DIR)/mods/*.cc) \
                  $(wildcard $(MODS_DIR)/mods/*/*.cc) \
                  $(wildcard $(MODS_DIR)/mods/*/*/*.cc)
 
-MODS_SRCS := $(MODS_C_SRCS) $(MODS_CXX_SRCS)
+MODS_S_SRCS := $(wildcard $(MODS_DIR)/mods/*.S) \
+               $(wildcard $(MODS_DIR)/mods/*/*.S) \
+               $(wildcard $(MODS_DIR)/mods/*/*/*.S)
+
+MODS_SRCS := $(MODS_C_SRCS) $(MODS_CXX_SRCS) $(MODS_S_SRCS)
 
 # Every .c depends on every mod header. Coarse on purpose: the headers are
 # small and the build is seconds, while a missed dependency ships a stale
@@ -79,7 +83,7 @@ MODS_CFLAGS := $(MODS_INCLUDES) $(MODS_COMPAT)
 # undefined symbols -- with no DT_NEEDED able to supply them. That survives
 # lazy binding inside EP122 and dies under any BIND_NOW binary in the preload
 # path: "symbol lookup error: undefined symbol: pthread_detach".
-MODS_LDLIBS := -lm -lpthread
+MODS_LDLIBS := -lm -lpthread -ldl
 
 # --no-undefined turns a missing library into a link error rather than a deck
 # that boots to nothing. Weak undefined symbols stay legal, which is the wanted
@@ -123,7 +127,8 @@ MODS_CXX_PROFILE := -std=gnu++14 -fno-exceptions -fno-rtti -fno-threadsafe-stati
 MODS_OBJ_CXXFLAGS := -fvisibility=hidden -Wmissing-declarations
 
 MODS_OBJS := $(patsubst $(MODS_DIR)/%.c,$(OUT)/%.o,$(MODS_C_SRCS)) \
-             $(patsubst $(MODS_DIR)/%.cc,$(OUT)/%.o,$(MODS_CXX_SRCS))
+             $(patsubst $(MODS_DIR)/%.cc,$(OUT)/%.o,$(MODS_CXX_SRCS)) \
+             $(patsubst $(MODS_DIR)/%.S,$(OUT)/%.o,$(MODS_S_SRCS))
 
 $(OUT)/%.o: $(MODS_DIR)/%.c $(MODS_HDRS) | $(OUT)
 	@mkdir -p $(dir $@)
@@ -138,12 +143,20 @@ $(OUT)/%.o: $(MODS_DIR)/%.cc $(MODS_HDRS) | $(OUT)
 	$(CXX) $(filter-out $(MODS_CXX_DROP),$(MODS_BUILD_CFLAGS)) \
 	    $(MODS_CXX_PROFILE) $(MODS_OBJ_CXXFLAGS) -c -o $@ $<
 
+# Assembly wrappers intentionally receive no forced C header. They only preserve
+# the OEM ABI around a C decision function and contain no preprocessor includes.
+$(OUT)/%.o: $(MODS_DIR)/%.S $(MODS_HDRS) | $(OUT)
+	@mkdir -p $(dir $@)
+	$(CC) -fPIC -c -o $@ $<
+
 # --- purity manifest ---
 # Mod sources compiling to an object with no undefined symbol outside
 # MODS_PURE_LIBC: no host state, no JUCE, no syscall. These are the part that
 # builds and tests on a dev host. The list is measured, not asserted --
 # `mods-purity` re-derives it with nm and fails on anything else.
 MODS_PURE_SRCS := $(MODS_DIR)/mods/stem/loop.c \
+                  $(MODS_DIR)/mods/stem/mode.c \
+                  $(MODS_DIR)/mods/cue/gate_state.c \
                   $(MODS_DIR)/mods/stem/ui/state.c \
                   $(MODS_DIR)/mods/wave/codec.c
 
@@ -180,11 +193,15 @@ READELF ?= $(CC:gcc=readelf)
 # Prefixed so an includer's own targets never collide.
 .PHONY: mods-purity mods-abi-check
 
+# Purity measures source-level dependencies. Some distro GCC specs inject
+# stack-canary externals even when the source has none; suppress that only for
+# these disposable inspection objects, never for the shipped shim.
 mods-purity:
 	@mkdir -p $(OUT)/purity; fail=0; \
 	for src in $(MODS_PURE_SRCS); do \
 	  obj=$(OUT)/purity/`echo "$$src" | tr / _`.o; \
-	  $(CC) $(MODS_BUILD_CFLAGS) $(MODS_OBJ_CFLAGS) -c -o "$$obj" "$$src" \
+	  $(CC) $(MODS_BUILD_CFLAGS) $(MODS_OBJ_CFLAGS) -fno-stack-protector \
+	    -c -o "$$obj" "$$src" \
 	    || { fail=1; continue; }; \
 	  bad=`$(NM) --undefined-only "$$obj" | awk '{print $$NF}' \
 	       | grep -vxF "$$(printf '%s\n' $(MODS_PURE_LIBC))" | tr '\n' ' '`; \

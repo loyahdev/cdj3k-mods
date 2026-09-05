@@ -330,6 +330,9 @@ static void stems_drc_timer(void *self)
     if (stems_g_orig_drc_timer)
         ((timercb_t)stems_g_orig_drc_timer)(self);
     stems_g_ticks++;
+    mod_stem_audio_report();
+    prestem_tick();
+    prestem_ui_refresh();
 
     /* The groove circuit's armed pad blinks off this same clock, and for the
      * same reason the row below does: the panel writes a lamp only when its own
@@ -339,6 +342,7 @@ static void stems_drc_timer(void *self)
     /* And the follow-up a gate-cue release may have left pending, which needs a
      * clock for the same reason and has no other one. */
     cue_pad_tick();
+    cue_shortcut_tick();
 
     /* And the beat grid, which the deck answers for on load and which nothing
      * else collects until a pad is pressed. The X-PAD's clock runs on it and the
@@ -380,6 +384,7 @@ static void stems_ta_paint(void *self, void *g)
     if (stems_g_orig_ta_paint)
         ((paint_t)stems_g_orig_ta_paint)(self, g);
     stems_try_build((uintptr_t)self);
+    prestem_ui_attach((uintptr_t)self);
     if (stems_g_built) stems_sync();
     /* Safety net for any close path that never reaches a handler of ours -- a screen
      * change, or the row being torn down from under us. The band being shrunk while our
@@ -406,6 +411,7 @@ static void stems_ta_paint(void *self, void *g)
 static void stems_ta_mousedown(void *self, void *event)
 {
     stems_try_build((uintptr_t)self);
+    prestem_ui_attach((uintptr_t)self);
     if (stems_g_orig_ta_mousedown)
         ((mousedown_t)stems_g_orig_ta_mousedown)(self, event);
 }
@@ -416,6 +422,11 @@ static void stems_ta_mousedown(void *self, void *event)
 
 static int stems_ui_install(void)
 {
+    if (prestem_native_owner_active()) {
+        MDBG("stems: native PRE-STEMS owns play-screen stem UI -> Server Stems UI skipped\n");
+        return 0;
+    }
+
     /* Every juce primitive the row is built out of. A signature match says more
      * than a prologue guard, so the check is simply whether the resolver found
      * them -- and it is a hard gate: half a row is worse than no row. */

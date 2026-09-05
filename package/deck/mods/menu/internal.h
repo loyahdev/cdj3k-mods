@@ -351,7 +351,7 @@ extern uintptr_t menu_g_orig_kbdkey; /* the view's own keyboard IListener callba
  * the stock row background + divider. Equal to the stock count, so the viewport
  * fills as DJ SETTING fills it and no scrollbar appears. The title takes one, which
  * is what leaves KIT_MENU_MAX_ROWS for settings. */
-#define MOD_ROWS_VISIBLE 8
+#define MOD_ROWS_VISIBLE 9
 _Static_assert(MOD_ROWS_VISIBLE - MOD_ROW_FIRST == KIT_MENU_MAX_ROWS,
                "the kit's row capacity must be what this list can show");
 

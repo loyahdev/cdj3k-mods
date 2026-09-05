@@ -150,7 +150,17 @@ static void mod_selchanged(void *self, int row)
     if (menu_row(row)) {               /* a real settings row: it now owns the right pane */
         const struct kit_row *r;
         if (row != menu_g_setting_row) menu_kbd_close();   /* the previous row's editor, if any */
+        int changed = row != menu_g_setting_row;
         menu_g_setting_row = row;
+        if (changed) {
+            int32_t focus = -1;
+            mod_safe_read(menu_g_view + VIEW_FOCUS_OFF, &focus, sizeof(focus));
+            /* Stock notified rowChanged before this callback could publish
+             * the new owner. Rebuild now, with matching labels and row count. */
+            menu_force_right_pane(menu_g_view);
+            if (focus >= 0)
+                mod_safe_write(menu_g_view + VIEW_FOCUS_OFF, &focus, sizeof(focus));
+        }
         r = menu_row(row);
         if (r->text) menu_kbd_open(r);
         return;

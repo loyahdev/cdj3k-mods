@@ -69,9 +69,37 @@ MATCHES=$(grep -c "$APP_LINE" "$STOCK_LAUNCHER" || true)
 if [ "$MATCHES" = "1" ]; then
     mkdir -p "$(dirname "$APL_START")"
     mv "$PDJ_TAR_WORKDIR"/payload.sh "$APL_START"
-    sed 's#^\([[:space:]]*\)\./\(EP[0-9][0-9]*\)[[:space:]]*$#\1LD_PRELOAD=/home/root/mods/ep122_shim.so ./\2#' \
-        "$STOCK_LAUNCHER" >> "$APL_START"
-    echo "phase2: preload targeted at the application line only"
+
+    # The recovered native Gate Cue companion is exact-build code.
+    # Only the two EP122 3.22 images it was built against may load it.  There is
+    # deliberately NO hardware-only fallback: a hash mismatch stays shim-only.
+    APP_NAME=$(sed -n 's#^[[:space:]]*\./\(EP[0-9][0-9]*\)[[:space:]]*$#\1#p' "$STOCK_LAUNCHER")
+    APP_HASH=$(/usr/bin/sha256sum "/home/root/pdj/$APP_NAME" 2>/dev/null | awk '{print $1}' || true)
+    PREUI_SRC=
+    case "$APP_HASH" in
+        33c093bdc4fbdaeb191942fa39fe1ca5ca8426440981b93d785d517934af52bc)
+            PREUI_SRC="$PDJ_TAR_WORKDIR/mods/preui-rk3399.so" ;;
+        ae5ce5dcb007bbc9cf24b482959c3fc26c7cdb7f6d011ac04eaed71bd259dbe5)
+            PREUI_SRC="$PDJ_TAR_WORKDIR/mods/preui-r8a7796.so" ;;
+    esac
+
+    if [ -n "$PREUI_SRC" ] && [ -f "$PREUI_SRC" ]; then
+        cp "$PREUI_SRC" "$PDJ_TAR_WORKDIR/mods/preui.so"
+
+        # A fresh install gets one fresh native attempt.  A crash created by this
+        # installed build will recreate the marker and suppress later retries.
+        rm -rf /mnt/cdj3k-mods-native 2>/dev/null || true
+
+        # Keep v7's exact Gate Cue companion, then install the shared shim.
+        # Offline stems are now source-built inside that shim.
+        sed 's#^\([[:space:]]*\)\./\(EP[0-9][0-9]*\)[[:space:]]*$#\1exec /home/root/mods/native-launch.sh#' \
+            "$STOCK_LAUNCHER" >> "$APL_START"
+        echo "phase2: exact Gate Cue companion + source PRE-STEMS shim targeted at $APP_NAME ($APP_HASH)"
+    else
+        sed 's#^\([[:space:]]*\)\./\(EP[0-9][0-9]*\)[[:space:]]*$#\1LD_PRELOAD=/home/root/mods/ep122_shim.so ./\2#' \
+            "$STOCK_LAUNCHER" >> "$APL_START"
+        echo "phase2: Gate companion unsupported for $APP_NAME ($APP_HASH); shim only"
+    fi
 else
     # ALL OR NOTHING. An unrecognised launcher has no line we can be sure is
     # the application.

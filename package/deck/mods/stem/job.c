@@ -794,12 +794,17 @@ static const char *const k_stem_where[2] = { "AUTO", "MANUAL" };
  * The overlay calls this BEFORE it persists, so what lands on disk is the
  * cleared value and never the bad one. */
 static const struct kit_row k_rows[] = {
-    KIT_ROW_BOOL("ENABLE STEMS", &g_stems_on,
+    KIT_ROW_BOOL("SERVER STEMS", &g_stems_on,
                  .idx = KIT_IDX_STEMS, .changed = mods_stem_settings_changed),
-    { .label = "STEM SERVER LOCATION", .idx = 0, .parent = &k_rows[0], .show_when = 1,
+    /* PRE-STEMS occupies the Server Stems OFF branch. That keeps both engines
+     * directly selectable without growing the fixed-height settings overlay. */
+    KIT_ROW_BOOL("OverCue Stems", &g_prestems_on,
+                 .idx = 0, .parent = &k_rows[0], .show_when = 0,
+                 .changed = prestem_settings_changed),
+    { .label = "STEM SERVER LOCATION", .idx = 1, .parent = &k_rows[0], .show_when = 1,
       .state = &g_stem_manual, .values = k_stem_where, .nvalues = 2,
       .changed = mods_stem_settings_changed },
-    { .label = "STEM SERVER ADDRESS", .idx = 0, .parent = &k_rows[1], .show_when = 1,
+    { .label = "STEM SERVER ADDRESS", .idx = 0, .parent = &k_rows[2], .show_when = 1,
       .text = g_stem_addr, .text_cap = STEM_ADDR_MAX, .changed = addr_changed },
 };
 
@@ -812,6 +817,17 @@ void stem_job_poll(void)
 
 static int stem_job_install(void)
 {
+    /* MOD SETTINGS must remain available in native PRE-STEMS mode, but the
+     * Server-Stems workers must not observe tracks, USB caches or separation
+     * state while the recovered native binder owns them. */
+    kit_menu_add(k_rows, (int)(sizeof(k_rows) / sizeof(k_rows[0])));
+    g_stems_was_on = g_stems_on ? 1 : 0;
+
+    if (prestem_native_owner_active()) {
+        MDBG("stem_job: native PRE-STEMS owns track/USB lifecycle -> workers skipped\n");
+        return 0;
+    }
+
     if (pthread_create(&g_separator, NULL, separator_main, NULL) != 0 ||
         pthread_create(&g_loader, NULL, loader_main, NULL) != 0) {
         MERR("stem_job: worker thread failed to start; STEMS unavailable\n");
@@ -820,10 +836,6 @@ static int stem_job_install(void)
     pthread_detach(g_separator);
     pthread_detach(g_loader);
     g_worker_up = 1;
-    /* After mods_settings_load(), so this is the DJ's saved choice rather than
-     * the compiled default. */
-    g_stems_was_on = g_stems_on ? 1 : 0;
-    kit_menu_add(k_rows, (int)(sizeof(k_rows) / sizeof(k_rows[0])));
     MDBG("stem_job: worker thread up (STEMS %s)\n",
          g_stems_was_on ? "on" : "off");
     return 0;

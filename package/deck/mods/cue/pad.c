@@ -31,6 +31,7 @@
  */
 #include "cue/cue.h"
 #include "kit/mod.h"
+#include <stdlib.h>
 
 /* ================================================================== */
 /* EP122-3.19 ABI                                                     */
@@ -48,6 +49,7 @@
  * handler+0x30 is a meow::MappedObjPtr whose vtable[0x38] hands it out. */
 #define DECK_RESOLVE_OFF     0x38
 #define HANDLER_DECK_MOP_OFF 0x30
+#define HANDLER_GATE_STATE_OFF 0xe7
 
 /* The shared pad/release closure. The last two are ONE pair as far as the deck
  * is concerned: the stock release hands `&closure[0x28]` to the handler's own
@@ -191,6 +193,28 @@ void *cue_controller(const struct cue_event *ev)
     if (mod_safe_read(resolver, &rvt, sizeof(rvt)) != 0) return NULL;
     if (mod_safe_read(rvt + DECK_RESOLVE_OFF, &resolve, sizeof(resolve)) != 0) return NULL;
     return ((resolve_fn_t)resolve)((void *)resolver);
+}
+
+int cue_gate_press_allowed(const struct cue_event *ev)
+{
+    uintptr_t handler = 0;
+    uint8_t state = 0xff;
+
+    if (!ev || !ev->task)
+        return 0;
+
+    if (mod_safe_read((uintptr_t)ev->task + CLOSURE_HANDLER_OFF,
+                      &handler, sizeof(handler)) != 0 || !handler)
+        return 0;
+
+    if (mod_safe_read(handler + HANDLER_GATE_STATE_OFF,
+                      &state, sizeof(state)) != 0)
+        return 0;
+
+    MDBG("cue: HotCueHandler+0xe7 = %u -> gate %s\n",
+         (unsigned)state, state == 0 ? "allowed" : "blocked");
+
+    return state == 0;
 }
 
 uintptr_t cue_slot(const struct cue_event *ev, int kind)
@@ -566,6 +590,10 @@ static void cue_sort_handlers(void)
 
 static int cue_pad_install(void)
 {
+    if (getenv("EP122_NATIVE_OVERCUE")) {
+        MDBG("cue: native Gate Cue owns Hot Cue/PLAY path -> cue_pad skipped\n");
+        return 0;
+    }
     const struct {
         const char *name;
         int         vt;

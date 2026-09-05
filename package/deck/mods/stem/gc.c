@@ -614,6 +614,11 @@ CUE_HANDLER(k_cue_gc,
 
 static int gc_install(void)
 {
+    if (prestem_native_owner_active()) {
+        MDBG("stem_gc: native PRE-STEMS owns stem interaction path -> skipped\n");
+        return 0;
+    }
+
     if (!cue_pad_ready()) {
         MDBG("gc: no cue interception -> GROOVE CIRCUIT unavailable\n");
         return -1;

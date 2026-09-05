@@ -46,6 +46,7 @@
  * sample-aligned with no second transport to keep in sync.
  */
 #include "stem/audio_internal.h"
+#include "cue/cue.h"
 
 #include <math.h>
 #include "xpad/ext.h"
@@ -515,12 +516,15 @@ static pcm_pos_t stem_source_read(void *self, void *dst, const void *src,
         if (lo != g_src.sid_lo || hi != g_src.sid_hi) {
             g_src.sid_lo = lo;
             g_src.sid_hi = hi;
+            cue_gate_track_loaded();
             __atomic_store_n(&g_src.track_gen, g_src.track_gen + 1,
                              __ATOMIC_RELAXED);
         }
     }
 
-    if (g_stems_on && !stem_bypass_get())
+    if (g_prestems_on && !g_stems_on)
+        prestem_audio(dst, g_src.pos, len, g_src.sid_lo, g_src.sid_hi, stem_pool_rate());
+    else if (g_stems_on && !stem_bypass_get())
         stem_mix(self, src, dst, g_src.pos, len);
 
     {
@@ -605,6 +609,11 @@ static void *const k_probe_wrapper[N_PROBE] = {
 static int stem_audio_install(void)
 {
     char name[64];
+
+    if (prestem_native_owner_active()) {
+        MDBG("stem_audio: native PRE-STEMS owns overlapping audio vtables -> skipped\n");
+        return 0;
+    }
     int i;
 
     for (i = 0; i < N_PROBE; i++) {

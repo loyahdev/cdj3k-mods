@@ -9,6 +9,7 @@
 /* The settings record's field widths and the theme name it logs; no feature's
  * install is named here. */
 #include "stem/stem.h"
+#include "stem/mode.h"
 #include "theme/theme.h"
 #include "cue/cue.h"
 #include "xpad/ext.h"
@@ -19,6 +20,7 @@
 int  g_mod_log = MOD_LOG_ERROR;   /* quiet until EP122_MOD_LOGLEVEL says otherwise */
 int  g_theme_id;
 int  g_stems_on;
+int  g_prestems_on;
 int  g_stem_manual;
 char g_stem_addr[STEM_ADDR_MAX];
 char g_stem_sep_id[STEM_SEP_ID_MAX];
@@ -90,6 +92,7 @@ struct mod_patch {
      * for the same "already restored?" test. */
     uint8_t     code[MOD_HOOK_BYTES];
     uint8_t     is_fn;
+    uint8_t     exec_slot;
 };
 
 static struct mod_patch g_patch[MOD_PATCH_MAX];
@@ -116,6 +119,10 @@ int mod_unpatch_owner(const char *owner)
             mod_restore_code(p->slot, p->code, MOD_HOOK_BYTES);
             MDBG("unpatch: %s code %#lx (%d bytes)\n", p->owner,
                  (unsigned long)p->slot, MOD_HOOK_BYTES);
+        } else if (p->exec_slot) {
+            mod_restore_exec_slot(p->slot, p->orig);
+            MDBG("unpatch: %s executable slot %#lx -> %#lx\n", p->owner,
+                 (unsigned long)p->slot, (unsigned long)p->orig);
         } else {
             mod_restore_slot(p->slot, p->orig);
             MDBG("unpatch: %s slot %#lx -> %#lx\n", p->owner,
@@ -177,9 +184,58 @@ int mod_patch_slot(const char *name, uintptr_t slot, uintptr_t expect_fn,
     g_patch[g_npatch].slot  = slot;
     g_patch[g_npatch].orig  = expect_fn;
     g_patch[g_npatch].owner = g_patch_owner;
+    g_patch[g_npatch].exec_slot = 0;
     g_npatch++;
     if (saved) *saved = expect_fn;
     MDBG("%s: %#lx -> wrapper %p (stock %#lx)\n", name, slot, wrapper, (unsigned long)expect_fn);
+    return 0;
+}
+
+int mod_patch_exec_slot(const char *name, uintptr_t slot, uintptr_t expect_fn,
+                        const uint8_t *guard, size_t guard_n, void *wrapper,
+                        uintptr_t *saved)
+{
+    uintptr_t cur = 0, replacement = (uintptr_t)wrapper, actual = 0;
+
+    if (mod_safe_read(slot, &cur, sizeof(cur)) != 0 || cur != expect_fn) {
+        MDBG("%s: executable slot %#lx unreadable/mismatched (got %#lx, expected %#lx)"
+             " -> skip\n", name, (unsigned long)slot, (unsigned long)cur,
+             (unsigned long)expect_fn);
+        return -1;
+    }
+    if (guard && !mod_prologue_ok(expect_fn, guard, guard_n)) {
+        MDBG("%s: guard mismatch/unreadable at %#lx -> skip\n",
+             name, (unsigned long)expect_fn);
+        return -1;
+    }
+    if (g_npatch >= MOD_PATCH_MAX) {
+        MDBG("%s: patch journal full (%d entries) -> skip\n", name, MOD_PATCH_MAX);
+        return -1;
+    }
+    if (mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_WRITE) != 0) {
+        MDBG("%s: executable slot mprotect RW failed errno=%d -> skip\n", name, errno);
+        return -1;
+    }
+    __atomic_store_n((uintptr_t *)slot, replacement, __ATOMIC_RELEASE);
+    if (mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_EXEC) != 0 ||
+        mod_safe_read(slot, &actual, sizeof(actual)) != 0 || actual != replacement) {
+        /* The page is still writable if the first test failed. If it became RX
+         * and only verification failed, make it writable once more for rollback. */
+        (void)mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_WRITE);
+        __atomic_store_n((uintptr_t *)slot, expect_fn, __ATOMIC_RELEASE);
+        (void)mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_EXEC);
+        MDBG("%s: executable slot write/protection verification failed -> restored\n", name);
+        return -1;
+    }
+    g_patch[g_npatch].slot      = slot;
+    g_patch[g_npatch].orig      = expect_fn;
+    g_patch[g_npatch].owner     = g_patch_owner;
+    g_patch[g_npatch].is_fn     = 0;
+    g_patch[g_npatch].exec_slot = 1;
+    g_npatch++;
+    if (saved) *saved = expect_fn;
+    MDBG("%s: executable slot %#lx -> wrapper %p (stock %#lx)\n",
+         name, (unsigned long)slot, wrapper, (unsigned long)expect_fn);
     return 0;
 }
 
@@ -218,6 +274,13 @@ void mod_restore_slot(uintptr_t slot, uintptr_t val)
     if (mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_WRITE) != 0) return;
     *(uintptr_t *)slot = val;
     mod_prot(slot, sizeof(uintptr_t), PROT_READ);
+}
+
+void mod_restore_exec_slot(uintptr_t slot, uintptr_t val)
+{
+    if (mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_WRITE) != 0) return;
+    __atomic_store_n((uintptr_t *)slot, val, __ATOMIC_RELEASE);
+    (void)mod_prot(slot, sizeof(uintptr_t), PROT_READ | PROT_EXEC);
 }
 
 /* ================================================================== */
@@ -412,7 +475,12 @@ struct mod_settings_v1 {
      * what every record written before this field existed reads back, is already
      * the right answer and it needs no inversion the way preview_off did. */
     uint8_t  xpad;
-    uint8_t  reserved[62];
+    /* PRE-STEMS. Taken from reserved; zero remains the old-build/default OFF. */
+    uint8_t  prestems;
+    /* Gate Cue startup default. This is encoded inverted so old records, whose
+     * reserved byte is zero, retain the historical default of ON. */
+    uint8_t  gate_default_off;
+    uint8_t  reserved[60];
     uint32_t crc32;                    /* over every byte above                   */
 };
 
@@ -500,8 +568,9 @@ void mods_settings_load(void)
     ssize_t n;
 
     if (fd < 0) {                       /* first boot with the mod: keep the defaults */
-        MDBG("settings: none at %s -> defaults (gate=%d smart=%d theme=%s stems=%d)\n",
-             MOD_SET_PATH, g_gate_on, g_smart_on, mod_theme_name(g_theme_id), g_stems_on);
+        MDBG("settings: none at %s -> defaults (gate=%d smart=%d theme=%s stems=%d prestems=%d)\n",
+             MOD_SET_PATH, g_gate_on, g_smart_on, mod_theme_name(g_theme_id),
+             g_stems_on, g_prestems_on);
         return;
     }
     n = read(fd, &s, sizeof(s));
@@ -532,9 +601,15 @@ void mods_settings_load(void)
     }
 
     g_gate_on     = s.gate ? 1 : 0;
+    g_gate_default_active = s.gate_default_off ? 0 : 1;
     g_smart_on    = s.smart ? 1 : 0;
     g_preview_on  = s.preview_off ? 0 : 1;
     g_stems_on    = s.stems ? 1 : 0;
+    g_prestems_on = s.prestems ? 1 : 0;
+    /* Preserve the established Server Stems choice if a damaged/hand-edited
+     * record ever asks for both. Normal UI callbacks never save this state. */
+    stem_mode_exclusive(&g_stems_on, &g_prestems_on,
+                        STEM_MODE_PREFER_SERVER);
     xpad_g_on     = s.xpad ? 1 : 0;
     g_stem_manual = s.stem_manual ? 1 : 0;
     /* Stored by index, so the registry's ORDER is part of the on-disk format:
@@ -548,9 +623,10 @@ void mods_settings_load(void)
     mods_set_sep_id(s.sep_id);
     memcpy(g_stem_addr, s.stem_addr, STEM_ADDR_MAX);
 
-    MDBG("settings: loaded gate=%d smart=%d preview=%d theme=%d(%s) xpad=%d stems=%d stemloc=%d sepid=\"%s\" stemaddr=\"%s\"\n",
+    MDBG("settings: loaded gate=%d smart=%d preview=%d theme=%d(%s) xpad=%d stems=%d prestems=%d stemloc=%d sepid=\"%s\" stemaddr=\"%s\"\n",
          g_gate_on, g_smart_on, g_preview_on, g_theme_id, mod_theme_name(g_theme_id),
-         xpad_g_on, g_stems_on, g_stem_manual, g_stem_sep_id, g_stem_addr);
+         xpad_g_on, g_stems_on, g_prestems_on, g_stem_manual,
+         g_stem_sep_id, g_stem_addr);
 }
 
 void mods_settings_save(void)
@@ -565,10 +641,12 @@ void mods_settings_save(void)
     s.version     = MOD_SET_VERSION;
     s.size        = (uint16_t)sizeof(s);
     s.gate        = g_gate_on ? 1u : 0u;
+    s.gate_default_off = g_gate_default_active ? 0u : 1u;
     s.smart       = g_smart_on ? 1u : 0u;
     s.preview_off = g_preview_on ? 0u : 1u;
     s.xpad        = xpad_g_on ? 1u : 0u;
     s.stems       = g_stems_on ? 1u : 0u;
+    s.prestems    = g_prestems_on ? 1u : 0u;
     s.stem_manual = g_stem_manual ? 1u : 0u;
     s.theme_id    = (uint32_t)g_theme_id;
     /* The string, not the buffer: both globals keep bytes after their terminator
@@ -612,9 +690,9 @@ void mods_settings_save(void)
         unlink(MOD_SET_TMP);
         return;
     }
-    MDBG("settings: saved gate=%d smart=%d preview=%d theme=%d(%s) xpad=%d stems=%d stemloc=%d stemaddr=\"%s\"\n",
+    MDBG("settings: saved gate=%d smart=%d preview=%d theme=%d(%s) xpad=%d stems=%d prestems=%d stemloc=%d stemaddr=\"%s\"\n",
          g_gate_on, g_smart_on, g_preview_on, g_theme_id, mod_theme_name(g_theme_id),
-         xpad_g_on, g_stems_on, g_stem_manual, g_stem_addr);
+         xpad_g_on, g_stems_on, g_prestems_on, g_stem_manual, g_stem_addr);
 }
 
 /* ================================================================== */
@@ -654,10 +732,12 @@ static void __attribute__((constructor)) mods_init(void)
      * and zero is off for all of them: THEME 0 is ORIGINAL, which is the absence of
      * a theme, and STEM SERVER LOCATION 0 is AUTO, which asks nothing of the DJ. */
     g_gate_on    = 0;
+    g_gate_default_active = 1;
     g_smart_on   = 0;
     g_preview_on = 0;
-    g_stems_on   = 0;
-    xpad_g_on    = 0;
+    g_stems_on    = 0;
+    g_prestems_on = 0;
+    xpad_g_on     = 0;
     g_theme_id   = 0;
 
     g_pagesize = sysconf(_SC_PAGESIZE);
@@ -790,4 +870,3 @@ void mods_install_all(void)
     else
         MINFO("install: %d/%d [%s]\n", ok, n, line);
 }
-

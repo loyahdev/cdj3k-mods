@@ -111,6 +111,7 @@
  * Everything here is [message]: the juce UI thread.
  */
 #include "theme/theme.h"
+#include "stem/stem.h"
 
 #define WAVE_N        8               /* colours in the group                    */
 #define WAVE_STRIDE   2               /* uint32 words per entry: colour + pad    */
@@ -266,6 +267,13 @@ uint32_t theme_wave_ground_stock(void)
 void theme_wave_apply(void)
 {
     const struct theme_palette *pal = mod_theme()->palette;
+
+    if (prestem_native_owner_active()) {
+        /* Native PRE-STEMS patches the detailed-waveform providers itself. */
+        g_ground = 0;
+        g_pal = NULL;
+        return;
+    }
     int id = __atomic_load_n(&g_theme_id, __ATOMIC_RELAXED);
     int i, k, wrote = 0;
 

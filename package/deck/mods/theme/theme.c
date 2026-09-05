@@ -362,6 +362,15 @@ static int theme_install(void)
 {
     int images, i;
 
+    for (i = 0; i < MOD_THEME_MAX; i++)
+        k_theme_values[i] = mod_theme_name(i);
+    kit_menu_add(k_rows, (int)(sizeof(k_rows) / sizeof(k_rows[0])));
+
+    if (prestem_native_owner_active()) {
+        MDBG("theme: native PRE-STEMS owns renderer/waveform slots -> theme hooks skipped\n");
+        return 0;
+    }
+
     if (mod_patch_vslot("setFill", EP122_GFX_RENDERER, THEME_SLOT_SETFILL,
                         (void *)wrap_setfill, &g_orig_setfill) != 0) {
         MDBG("theme: setFill hook unavailable -> themes disabled\n");
@@ -385,10 +394,6 @@ static int theme_install(void)
     /* Images are a bonus: without them the vector chrome still re-themes, so a
      * failure there degrades rather than disables. */
     images = theme_image_install() == 0;
-
-    for (i = 0; i < MOD_THEME_MAX; i++)
-        k_theme_values[i] = mod_theme_name(i);
-    kit_menu_add(k_rows, (int)(sizeof(k_rows) / sizeof(k_rows[0])));
 
     MDBG("theme: installed (theme=%s images=%s, live-switchable)\n",
          mod_theme()->name, images ? "on" : "off");

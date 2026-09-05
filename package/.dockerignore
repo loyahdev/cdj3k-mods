@@ -12,3 +12,5 @@ updater/test/
 *.crc32
 *.iso
 .DS_Store
+
+deck/out*/

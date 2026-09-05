@@ -152,6 +152,10 @@ function install_phase1() {
     mkdir -p "$PDJ_TAR_WORKDIR"/mods
     safe_cp "$ISO_MOUNTPOINT"/mods/ep122_shim.so "$PDJ_TAR_WORKDIR"/mods/ep122_shim.so
     safe_cp "$ISO_MOUNTPOINT"/mods/stemd_client  "$PDJ_TAR_WORKDIR"/mods/stemd_client
+    safe_cp "$ISO_MOUNTPOINT"/mods/preui-rk3399.so "$PDJ_TAR_WORKDIR"/mods/preui-rk3399.so
+    safe_cp "$ISO_MOUNTPOINT"/mods/preui-r8a7796.so "$PDJ_TAR_WORKDIR"/mods/preui-r8a7796.so
+    safe_cp "$ISO_MOUNTPOINT"/native-launch.sh "$PDJ_TAR_WORKDIR"/mods/native-launch.sh
+    chmod 0755 "$PDJ_TAR_WORKDIR"/mods/native-launch.sh
     chmod 0755 "$PDJ_TAR_WORKDIR"/mods/stemd_client
 
     # authorized_keys beside the .UPD turns on root SSH; absent by default.

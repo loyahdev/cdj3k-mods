@@ -141,8 +141,12 @@ EOF
     # The ISO the deck would mount: the REAL update scripts + DUMMY binaries
     # (this harness tests the script plumbing, not the aarch64 binaries).
     cp "$SRC/usb_update.sh" "$SRC/phase1.sh" "$SRC/phase2.sh" \
-       "$SRC/payload.sh"    "$SRC/uninstall.sh" "$ISO/"
+       "$SRC/payload.sh"    "$SRC/native-launch.sh" "$SRC/uninstall.sh" "$ISO/"
     printf '\177ELF (dummy shim placeholder)\n' > "$ISO/mods/ep122_shim.so"
+    # Required Gate companions are inert fixtures; fake EP1000 deliberately
+    # takes the unsupported-profile shim-only branch.
+    printf '\177ELF (dummy Gate companion)\n' > "$ISO/mods/preui-rk3399.so"
+    cp "$ISO/mods/preui-rk3399.so" "$ISO/mods/preui-r8a7796.so"
     cat > "$ISO/mods/stemd_client" <<'EOF'
 #!/bin/sh
 echo "[stemd_client stub] up; LD_PRELOAD=${LD_PRELOAD:-<unset>}"

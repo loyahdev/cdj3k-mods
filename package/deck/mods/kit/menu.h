@@ -83,7 +83,7 @@ struct kit_row {
  * when the list is flattened rather than at registration: the overflow is
  * logged and the surplus dropped. A row that is silently invisible and
  * unreachable is the failure this exists to prevent. */
-#define KIT_MENU_MAX_ROWS 7
+#define KIT_MENU_MAX_ROWS 8
 
 /* The longest buffer a TEXT row may hand over. The overlay keeps the pre-edit
  * value in a buffer of its own, which has to be sized for any row. */

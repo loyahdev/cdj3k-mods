@@ -126,6 +126,12 @@ static int be_on_playlist(uintptr_t list)
     uintptr_t box;
     int32_t rows = 0, sel = -1;
 
+    /* The database cache is authoritative for the dedicated PLAYLIST view.
+     * That view is built outside BrowseView, so its list may not retain the
+     * playlist-view parent chain by the time the title bar paints. */
+    if (mod_djdb_playlist_now() != 0)
+        return 1;
+
     if (be_under_playlist_view(list))
         return 1;
     box = be_side_box(juce_comp_root(be_g_bar), 0);
@@ -380,6 +386,11 @@ static void be_attach(uintptr_t bar)
             /* Already ours. Follow it: this runs from the paint of whichever
              * header is on screen, so it is also how the module learns which
              * one that is. */
+            /* Visibility is per plate, but be_g_shown caches the active one.
+             * Invalidate it when headers change so be_sync applies the state to
+             * this plate rather than trusting the previous plate's result. */
+            if (be_g_btn != be_g_plate[i].btn)
+                be_g_shown = -1;
             be_g_bar = bar;
             be_g_btn = be_g_plate[i].btn;
             be_g_peer = be_g_plate[i].peer;
@@ -435,7 +446,7 @@ static void be_sync(void)
     uintptr_t vptr = 0, list;
     int want;
 
-    if (!be_g_btn || !be_g_peer)
+    if (!be_g_btn)
         return;
     /* Our plate is a CHILD of the deck's header, so the deck deletes it if it
      * ever rebuilds the browse view -- and this runs 44 times a second off a
