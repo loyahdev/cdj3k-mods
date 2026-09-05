@@ -41,7 +41,7 @@ Features
 * Browsing — reorder tracks inside a playlist directly from the deck.
 * Grid Adjust — additional BPM/grid controls including doubling, halving, and fine adjustment of the beat interval.
 
-Documentation at https://cdj3k-mods.com · Download the latest release
+Documentation at https://cdj3k-mods.com · [Download the latest release](https://github.com/loyahdev/cdj3k-mods/releases/tag/0.1.4)
 
 Supported decks
 
