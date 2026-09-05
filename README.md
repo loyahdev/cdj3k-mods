@@ -1,8 +1,9 @@
 cdj3k-mods
 
-[!NOTE]
-This is an enhanced fork of the original cdj3k-mods project.
-This version includes hardware-tested fixes and improvements to Gate Cue, UI rendering, additional Gate Cue settings, and a second Stems implementation independently recreated from research into OverCue.
+> [!IMPORTANT]
+> **This is an enhanced fork of the original [cdj3k-mods](https://github.com/nsaintot/cdj3k-mods) project.**
+>
+> This version includes hardware-tested Gate Cue fixes, UI rendering improvements, additional Gate Cue settings, and a second Stems implementation independently recreated from research into [OverCue](https://overcue.gg).
 
 A compilation of tools and modifications for the CDJ-3000, with additional fixes and features intended to improve the overall experience.
 
