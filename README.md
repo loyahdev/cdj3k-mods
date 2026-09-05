@@ -25,6 +25,8 @@ This fork includes two different Stems systems, allowing you to choose the versi
 
 OverCue Stems is an additional implementation introduced in this fork. Its functionality was recreated after studying the behaviour and research demonstrated by Sam Leone’s OverCue project.
 
+It is improved on here being able to load stems much faster and be more stable in normal use.
+
 > [!NOTE]
 >The OverCue implementation in this repository is independently written and does not contain or redistribute OverCue source code or binaries. OverCue served as an important reference for understanding and recreating the functionality.
 
