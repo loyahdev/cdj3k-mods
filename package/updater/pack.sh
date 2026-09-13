@@ -56,13 +56,11 @@ OUT="$(mkdir -p "$OUT" && cd "$OUT" && pwd)"
 
 SHIM="$BINS/ep122_shim.so"
 AGENT="$BINS/stemd_client_aarch64"
-PREUI_RK="$PKG/prebuilt/libgatecue-native-physical-stems-shared.so"
-PREUI_R8="$PKG/prebuilt/libgatecue-native-physical-stems-r8a7796.so"
 
 # A removal .UPD carries no binaries - it only deletes the overlay - so the
 # binary check applies to an install package only.
 if [[ "$MODE" == install ]]; then
-    for f in "$SHIM" "$AGENT" "$PREUI_RK" "$PREUI_R8"; do
+    for f in "$SHIM" "$AGENT"; do
         if [[ ! -f "$f" ]]; then
             echo "pack.sh: missing binary: $f" >&2
             echo "         build it first:  ./build.sh --no-pack   (or run pack via build.sh)" >&2
@@ -128,8 +126,6 @@ echo "==> packing $MODE $UPD_NAME (privileged $IMAGE container)"
 if [[ "$MODE" == install ]]; then
     echo "    shim : $SHIM"
     echo "    agent: $AGENT"
-    echo "    native UI RK: $PREUI_RK"
-    echo "    native UI R8: $PREUI_R8"
 fi
 echo "    key  : $KEY"
 
@@ -138,9 +134,7 @@ echo "    key  : $KEY"
 # The binary mounts are only needed by an install package.
 MOUNTS=(-v "$PKG/updater/src:/src:ro" -v "$KEY:/key:ro" -v "$OUT:/out")
 if [[ "$MODE" == install ]]; then
-    MOUNTS+=(-v "$SHIM:/in/ep122_shim.so:ro" -v "$AGENT:/in/stemd_client:ro"
-             -v "$PREUI_RK:/in/preui-rk3399.so:ro"
-             -v "$PREUI_R8:/in/preui-r8a7796.so:ro")
+    MOUNTS+=(-v "$SHIM:/in/ep122_shim.so:ro" -v "$AGENT:/in/stemd_client:ro")
 fi
 
 docker run --rm -i --privileged -e "MODE=$MODE" -e "UPD_NAME=$UPD_NAME" -e "UPD_DEFAULT=$UPD_DEFAULT" "${MOUNTS[@]}" \
@@ -166,14 +160,13 @@ if [ "$MODE" = remove ]; then
     cp /src/uninstall.sh "$WORK/stage/usb_update.sh"
     chmod 0755 "$WORK/stage/usb_update.sh"
 else
-    # Install: the installer entry + the two-phase chain + the runtime script +
-    # the mod binaries. Listed explicitly so uninstall.sh never rides along.
-    cp /src/usb_update.sh /src/phase1.sh /src/phase2.sh /src/payload.sh /src/native-launch.sh "$WORK/stage/"
+    # Install: the installer entry + the two-phase chain + the runtime prefix +
+    # the source-built mod binaries. Listed explicitly so uninstall.sh and the
+    # retired combined native Gate Cue/Stems overlay never ride along.
+    cp /src/usb_update.sh /src/phase1.sh /src/phase2.sh /src/payload.sh "$WORK/stage/"
     mkdir -p "$WORK/stage/mods"
     cp /in/ep122_shim.so "$WORK/stage/mods/ep122_shim.so"
     cp /in/stemd_client  "$WORK/stage/mods/stemd_client"
-    cp /in/preui-rk3399.so "$WORK/stage/mods/preui-rk3399.so"
-    cp /in/preui-r8a7796.so "$WORK/stage/mods/preui-r8a7796.so"
     chmod 0755 "$WORK/stage/mods/stemd_client" "$WORK"/stage/*.sh
 fi
 

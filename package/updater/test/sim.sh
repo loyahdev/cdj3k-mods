@@ -141,12 +141,8 @@ EOF
     # The ISO the deck would mount: the REAL update scripts + DUMMY binaries
     # (this harness tests the script plumbing, not the aarch64 binaries).
     cp "$SRC/usb_update.sh" "$SRC/phase1.sh" "$SRC/phase2.sh" \
-       "$SRC/payload.sh"    "$SRC/native-launch.sh" "$SRC/uninstall.sh" "$ISO/"
+       "$SRC/payload.sh"    "$SRC/uninstall.sh" "$ISO/"
     printf '\177ELF (dummy shim placeholder)\n' > "$ISO/mods/ep122_shim.so"
-    # Required Gate companions are inert fixtures; fake EP1000 deliberately
-    # takes the unsupported-profile shim-only branch.
-    printf '\177ELF (dummy Gate companion)\n' > "$ISO/mods/preui-rk3399.so"
-    cp "$ISO/mods/preui-rk3399.so" "$ISO/mods/preui-r8a7796.so"
     cat > "$ISO/mods/stemd_client" <<'EOF'
 #!/bin/sh
 echo "[stemd_client stub] up; LD_PRELOAD=${LD_PRELOAD:-<unset>}"
@@ -301,6 +297,10 @@ P=$(peek)
 [ -f "$P/payload.sh" ] && pass "archive has payload.sh" || fail "no payload.sh in archive"
 [ -f "$P/mods/ep122_shim.so" ] && [ -f "$P/mods/stemd_client" ] \
     && pass "archive has mods/{ep122_shim.so,stemd_client}" || fail "mods missing from archive"
+[ ! -e "$P/mods/preui.so" ] && [ ! -e "$P/mods/preui-rk3399.so" ] \
+    && [ ! -e "$P/mods/preui-r8a7796.so" ] && [ ! -e "$P/mods/native-launch.sh" ] \
+    && pass "combined native Gate Cue/Stems overlay is not staged" \
+    || fail "combined native overlay still present in archive"
 grep -q '^71$' /sys/class/gpio/export && pass "front-panel LED GPIO 71 exported" || fail "LED not exported"
 grep -q '^out$' /sys/class/gpio/gpio71/direction && pass "LED GPIO set to output" || fail "LED direction not set"
 grep -qE '^[01]$' /sys/class/gpio/gpio71/value && pass "LED is being driven (blink running)" || fail "LED never driven"
