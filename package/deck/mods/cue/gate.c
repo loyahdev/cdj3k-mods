@@ -10,6 +10,7 @@
  */
 #include "cue/cue.h"
 #include "cue/gate_state.h"
+#include "cue/gate_menu_state.h"
 #include "kit/menu.h"
 #include "kit/mod.h"
 
@@ -38,6 +39,7 @@ struct gate_oem_event {
 int g_gate_on;     /* persisted master; see core/common.c */
 int g_gate_active; /* runtime play-screen toggle; intentionally not persisted */
 int g_gate_default_active = 1; /* new tracks start with Gate Cue on by default */
+static int g_gate_menu_state;
 static int gate_g_track_pending;
 
 void cdj_gate_cue_hot_change(void);
@@ -245,19 +247,35 @@ void cue_gate_tick(void)
         (void)cue_gate_runtime_set_active(g_gate_default_active);
 }
 
+static const char *const k_gate_menu_values[GATE_MENU_STATE_COUNT] = {
+    "OFF",
+    "ON / DEFAULT OFF",
+    "ON / DEFAULT ON",
+};
+
+static void cue_gate_menu_changed(void)
+{
+    gate_menu_state_apply(g_gate_menu_state, &g_gate_on,
+                          &g_gate_default_active);
+    cue_gate_changed();
+}
+
 static const struct kit_row k_rows[] = {
-    KIT_ROW_BOOL("GATE CUE", &g_gate_on, .idx = KIT_IDX_GATE,
-                 .changed = cue_gate_changed),
-    KIT_ROW_BOOL("GATE CUE DEFAULT", &g_gate_default_active, .idx = 0,
-                 .parent = &k_rows[0], .show_when = 1),
+    { .label = "GATE CUE", .idx = KIT_IDX_GATE,
+      .state = &g_gate_menu_state, .values = k_gate_menu_values,
+      .nvalues = GATE_MENU_STATE_COUNT, .changed = cue_gate_menu_changed },
 };
 
 static int gate_install(void)
 {
     int ok = 0;
 
-    /* Register the master switch regardless of hook outcome. This setting is
-     * the only control that makes the play-screen shortcut exist/disappear. */
+    /* Keep the complete Gate Cue state in one row. EP122's stock DJ SETTING
+     * model has eight rows total, including our title; revealing a separate
+     * default row pushed OverCue to index 8 and handed that out-of-range index
+     * to stock selection handlers. */
+    g_gate_menu_state = gate_menu_state_from(g_gate_on,
+                                             g_gate_default_active);
     kit_menu_add(k_rows, (int)(sizeof(k_rows) / sizeof(k_rows[0])));
 
     if (cue_gate_native_owned()) {
